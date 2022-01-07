@@ -1,23 +1,46 @@
+import { changeProgressBarStatus } from "@/features/progressBar"
+import { TSortType } from "@/types/ui.types"
 import clsx from "clsx"
+import { Event, Store } from "effector"
+import { useEvent, useStore } from "effector-react/scope"
 import React, { memo, FC, useEffect, useState } from "react"
 
-interface PageActionPanelProps {}
+interface PageActionPanelProps {
+    refresh: Event<void>
+    create?: Event<any>
+    delete?: Event<any>
+    sort: Event<TSortType>
+    sortType: Store<TSortType>
+}
 
-const PageActionPanel: FC<PageActionPanelProps> = () => {
+const PageActionPanel: FC<PageActionPanelProps> = ({ sort, sortType, refresh }) => {
     const [loading, setLoading] = useState(false)
+    const handleChangeSortType = useEvent(sort)
 
+    const handleRefresh = useEvent(refresh)
+    const handleChangeProgressBarStatus = useEvent(changeProgressBarStatus)
+
+    const currentSortType = useStore(sortType)
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (loading) setLoading((state) => !state)
+            if (loading) {
+                setLoading((state) => !state)
+                handleChangeProgressBarStatus()
+            }
         }, 3000)
 
         return () => clearTimeout(timer)
     }, [loading])
+
     return (
         <div className="btn-group">
             <button
                 className={clsx("btn btn-accent ", loading && " loading btn-active")}
-                onClick={() => setLoading(true)}
+                onClick={() => {
+                    setLoading(true)
+                    handleChangeProgressBarStatus()
+                    handleRefresh()
+                }}
                 disabled={loading}
             >
                 {!loading && (
@@ -39,6 +62,13 @@ const PageActionPanel: FC<PageActionPanelProps> = () => {
             </button>
             <button className="btn ">создать</button>
             <button className=" btn">удалить</button>
+            <button
+                className=" btn"
+                onClick={() => handleChangeSortType(currentSortType === "SMALL" ? "LARGE" : "SMALL")}
+            >
+                {currentSortType}
+            </button>
+
             <button className="btn ">
                 <svg
                     xmlns="http://www.w3.org/2000/svg"

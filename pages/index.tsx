@@ -1,77 +1,65 @@
-import DishCard from "@/Components/DishCard/DishCard"
 import Layout from "@/Components/Layout/Layout"
-import Modal from "@/Components/Modal/Modal"
-import PageActionPanel from "@/Components/PageActionPanel/PageActionPanel"
-import Pagination from "@/Components/Pagination/Pagination"
-import clsx from "clsx"
-import { useEvent } from "effector-react/scope"
-import type { NextPage } from "next"
-import Head from "next/head"
-import Image from "next/image"
-import { useCallback, useEffect, useState } from "react"
+import { $isOpenModal, toggleModal } from "@/features/modal"
+import { restaurantFactory } from "@/features/restaurants"
+import { rolesFactory } from "@/features/roles"
+import { toggleDrawer } from "@/features/sidebar"
+import { allSettled, Event, fork, serialize, Store } from "effector"
+import { useEvent, useList, useStore } from "effector-react/scope"
+import type { GetServerSideProps, NextPage } from "next"
+
+import { FC } from "react"
+
+interface FieldProps {
+    status: Store<string>
+    change: Event<any>
+}
+const Field: FC<FieldProps> = ({ status, change }) => {
+    const value = useStore(status)
+    const onChange = useEvent(change)
+
+    return <input value={value} onChange={(e) => onChange(e.target.value)} className="text-black" />
+}
 
 const Home: NextPage = () => {
-    const [isOpenDrawer, setIsOpenDrawer] = useState(false)
-    const [isOpenModal, setIsOpenModal] = useState(false)
+    const handleToggleDrawer = useEvent(toggleDrawer)
+    const isOpenModal = useStore($isOpenModal)
+    const handleOpenModal = useEvent(toggleModal)
 
-    const [currentPage, setCurrentPage] = useState(1)
-
-    const [pages, setPages] = useState(10)
-
-    const handleOpenModal = () => setIsOpenModal(!isOpenModal)
-    const handleOpenDrawer = useCallback(() => {
-        setIsOpenDrawer(!isOpenDrawer)
-    }, [isOpenDrawer])
-
-    const handleSetCurrentPage = useCallback(
-        (newPage: number) => {
-            setCurrentPage(newPage)
-        },
-        [currentPage]
-    )
-
-    const handlePrevPage = useCallback(() => {
-        if (currentPage > 1) setCurrentPage(currentPage - 1)
-    }, [currentPage])
-
-    const handleNextPage = useCallback(() => {
-        if (currentPage < 10) setCurrentPage(currentPage + 1)
-    }, [currentPage])
+    const { $store: $restaurants, $pending } = restaurantFactory
 
     return (
-        <Layout openDrawer={handleOpenDrawer} isOpenDrawer={isOpenDrawer} isEnable={isOpenModal}>
+        <Layout>
             <main className="p-8">
                 <div className="btn-group mb-4 self-center">
-                    <button className="btn btn-primary " onClick={handleOpenDrawer}>
+                    <button className="btn btn-primary " onClick={handleToggleDrawer}>
                         daisyUI Button
                     </button>
 
                     <button onClick={handleOpenModal} className="btn btn-primary modal-button">
                         open modal
                     </button>
+                    <div className="w-full grid grid-cols-3">
+                        {useList($restaurants, { keys: [$pending], fn: (rest) => <div>{rest.name}</div> })}
+                    </div>
                 </div>
-
-                <PageActionPanel />
-                <Modal show={isOpenModal} onClick={handleOpenModal}>
-                    asdasdsads
-                </Modal>
-                <div className="grid grid-cols-5 gap-4">
-                    <DishCard isLoading={isOpenModal} />
-                    <DishCard isLoading={isOpenModal} />
-                    <DishCard isLoading={isOpenModal} />
-                    <DishCard isLoading={isOpenModal} />
-                </div>
-                <div className="grow"></div>
-                <Pagination
-                    currentPage={currentPage}
-                    pages={pages}
-                    onClick={handleSetCurrentPage}
-                    prevPage={handlePrevPage}
-                    nextPage={handleNextPage}
-                />
             </main>
         </Layout>
     )
 }
 
 export default Home
+
+export const getServerSideProps: GetServerSideProps = async () => {
+    const scope = fork()
+
+    await allSettled(rolesFactory.getAll, { scope })
+    await allSettled(restaurantFactory.getAll, { scope })
+
+    const serialized = serialize(scope)
+
+    return {
+        props: {
+            initialState: serialized,
+        },
+    }
+}

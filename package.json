@@ -13,6 +13,7 @@
     },
     "dependencies": {
         "@heroicons/react": "^1.0.5",
+        "axios": "^0.24.0",
         "clsx": "^1.1.1",
         "daisyui": "^1.21.0",
         "effector": "^22.1.2",

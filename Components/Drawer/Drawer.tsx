@@ -1,12 +1,15 @@
+import { $isOpenDrawer, toggleDrawer } from "@/features/sidebar"
 import clsx from "clsx"
+import { useEvent, useStore } from "effector-react/scope"
 import React, { memo, FC } from "react"
 
-interface DrawerProps {
-    openDrawer(): void
-    isOpenDrawer: boolean
-}
+interface DrawerProps {}
 
-const Drawer: FC<DrawerProps> = ({ openDrawer, isOpenDrawer }) => {
+const Drawer: FC<DrawerProps> = () => {
+    const isOpenDrawer = useStore($isOpenDrawer)
+
+    const handleToggleDrawer = useEvent(toggleDrawer)
+
     return (
         <aside
             className={clsx(
@@ -14,12 +17,10 @@ const Drawer: FC<DrawerProps> = ({ openDrawer, isOpenDrawer }) => {
                 isOpenDrawer ? "translate-x-0" : "translate-x-[-100%]",
                 "transition-all duration-500"
             )}
-            onClick={openDrawer}
+            onClick={handleToggleDrawer}
         >
-            {/* <div className="w-screen h-screen" onClick={openDrawer}></div> */}
-
             <div className="drawer-side max-w-sm">
-                <button onClick={openDrawer}>Закрыть</button>
+                <button onClick={handleToggleDrawer}>Закрыть</button>
                 <ul className="menu p-4 overflow-y-auto bg-base-100 text-base-content h-screen">
                     <li>
                         <a>Menu Item</a>

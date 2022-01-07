@@ -1,12 +1,15 @@
+import { toggleDrawer } from "@/features/sidebar"
+import { useEvent } from "effector-react/scope"
 import React, { memo, FC } from "react"
 
 interface HeaderProps {}
 
 const Header: FC<HeaderProps> = () => {
+    const handleToggleSidebar = useEvent(toggleDrawer)
     return (
         <header className="navbar  shadow-lg bg-neutral text-neutral-content">
             <div className="flex-none hidden lg:flex">
-                <button className="btn btn-square btn-ghost">
+                <button className="btn btn-square btn-ghost" onClick={handleToggleSidebar}>
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"

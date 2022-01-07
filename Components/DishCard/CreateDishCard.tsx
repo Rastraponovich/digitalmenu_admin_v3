@@ -1,17 +1,21 @@
+import { createNewDish } from "@/features/dishes"
 import clsx from "clsx"
+import { useEvent } from "effector-react/scope"
 import Image from "next/image"
-import React, { memo, FC } from "react"
+import React, { memo, FC, useRef } from "react"
 
-interface DishCardProps {
-    isLoading: boolean
-}
+interface CreateDishCardProps {}
 
-const DishCard: FC<DishCardProps> = ({ isLoading }) => {
+const CreateDishCard: FC<CreateDishCardProps> = () => {
+    const isLoading = false
+
+    const handleClick = useEvent(createNewDish)
+
     return (
         <div className="card text-center shadow-lg card-compact col-span-1 card-bordered">
             <figure>
                 <Image
-                    src="https://picsum.photos/id/1005/400/250"
+                    src="/vercel.svg"
                     height={250}
                     loading="lazy"
                     blurDataURL="/vercel.svg"
@@ -28,8 +32,12 @@ const DishCard: FC<DishCardProps> = ({ isLoading }) => {
                     molestiae voluptates incidunt iure sapiente.
                 </p>
                 <div className="justify-center card-actions">
-                    <button className={clsx("btn btn-outline btn-accent", isLoading && "loading")} disabled={isLoading}>
-                        More info
+                    <button
+                        className={clsx("btn btn-outline btn-accent", isLoading && "loading")}
+                        disabled={isLoading}
+                        onClick={handleClick}
+                    >
+                        создать
                     </button>
                 </div>
             </div>
@@ -37,4 +45,4 @@ const DishCard: FC<DishCardProps> = ({ isLoading }) => {
     )
 }
 
-export default memo(DishCard)
+export default memo(CreateDishCard)

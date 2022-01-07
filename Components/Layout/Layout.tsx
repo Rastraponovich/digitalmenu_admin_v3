@@ -8,12 +8,9 @@ import ProgressBar from "../ProgressBar/ProgressBar"
 
 interface LayoutProps {
     children: ReactNode
-    openDrawer(): void
-    isOpenDrawer: boolean
-    isEnable?: boolean
 }
 
-const Layout: FC<LayoutProps> = ({ children, openDrawer, isOpenDrawer, isEnable = false }) => {
+const Layout: FC<LayoutProps> = ({ children }) => {
     return (
         <>
             <Head>
@@ -22,8 +19,8 @@ const Layout: FC<LayoutProps> = ({ children, openDrawer, isOpenDrawer, isEnable 
                 <link rel="icon" href="/favicon.ico" />
             </Head>
             <Header />
-            <ProgressBar isEnable={isEnable} />
-            <Drawer openDrawer={openDrawer} isOpenDrawer={isOpenDrawer} />
+            <ProgressBar />
+            <Drawer />
             {children}
             <Footer />
         </>

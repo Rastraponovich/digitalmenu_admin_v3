@@ -1,31 +1,14 @@
-import React, { memo, FC, useState, useEffect } from "react"
+import { $progressValue, resetPB, startPB, stopPB } from "@/features/progressBar"
+import { useStore } from "effector-react"
+import { useEvent } from "effector-react/scope"
+import React, { memo, FC, useState, useEffect, useMemo } from "react"
 
-interface ProgressBarProps {
-    isEnable: boolean
-}
+interface ProgressBarProps {}
 
-const ProgressBar: FC<ProgressBarProps> = ({ isEnable }) => {
-    const [count, setCount] = useState(0)
+const ProgressBar: FC<ProgressBarProps> = () => {
+    const $count = useStore($progressValue)
 
-    useEffect(() => {
-        if (isEnable) {
-            const timer = setInterval(() => {
-                if (count < 100) {
-                    setCount((sec) => sec + 15)
-                }
-            }, 1000)
-
-            return () => clearInterval(timer)
-        }
-    }, [isEnable])
-
-    useEffect(() => {
-        if (count > 100) setCount(0)
-    }, [count])
-
-    useEffect(() => {
-        if (!isEnable) setCount(0)
-    }, [isEnable])
+    const count = useMemo(() => $count, [$count])
 
     return (
         <div className="artboard flex items-start">
