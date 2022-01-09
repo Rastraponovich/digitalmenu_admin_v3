@@ -7,18 +7,25 @@ import React, { memo, FC, useEffect, useState } from "react"
 
 interface PageActionPanelProps {
     refresh: Event<void>
-    create?: Event<any>
+    create: Event<any>
     delete?: Event<any>
     sort: Event<TSortType>
     sortType: Store<TSortType>
+    checkAll: Event<void>
+    uncheckAll: Event<void>
 }
 
-const PageActionPanel: FC<PageActionPanelProps> = ({ sort, sortType, refresh }) => {
+const PageActionPanel: FC<PageActionPanelProps> = ({ sort, sortType, refresh, checkAll, uncheckAll, create }) => {
     const [loading, setLoading] = useState(false)
     const handleChangeSortType = useEvent(sort)
 
     const handleRefresh = useEvent(refresh)
     const handleChangeProgressBarStatus = useEvent(changeProgressBarStatus)
+
+    const handleCheckAll = useEvent(checkAll)
+    const handleUncheckAll = useEvent(uncheckAll)
+
+    const handleCreate = useEvent(create)
 
     const currentSortType = useStore(sortType)
     useEffect(() => {
@@ -31,6 +38,7 @@ const PageActionPanel: FC<PageActionPanelProps> = ({ sort, sortType, refresh }) 
 
         return () => clearTimeout(timer)
     }, [loading])
+    console.log("render panel")
 
     return (
         <div className="btn-group">
@@ -60,8 +68,17 @@ const PageActionPanel: FC<PageActionPanelProps> = ({ sort, sortType, refresh }) 
                     </svg>
                 )}
             </button>
-            <button className="btn ">создать</button>
+            <button className="btn " onClick={handleCreate}>
+                создать
+            </button>
             <button className=" btn">удалить</button>
+            <button className=" btn" onClick={handleCheckAll}>
+                выбрать все
+            </button>
+            <button className=" btn" onClick={handleUncheckAll}>
+                снять выделение
+            </button>
+
             <button
                 className=" btn"
                 onClick={() => handleChangeSortType(currentSortType === "SMALL" ? "LARGE" : "SMALL")}

@@ -11,14 +11,15 @@ interface InputFieldProps {
     titleClassName?: string
     title: string
     inputClassName?: string
+    type?: string
 }
 
-const InputField: FC<InputFieldProps> = ({ name, title, onChange, value }) => {
+const InputField: FC<InputFieldProps> = ({ name, title, onChange, value, type = "text" }) => {
     const handleChange = useEvent(onChange)
     return (
         <label className="flex flex-col">
             <span>{title}</span>
-            <input type="text" value={value} name={name} onChange={handleChange} className="text-black" />
+            <input value={value} name={name} onChange={handleChange} className="text-black" type={type} />
         </label>
     )
 }

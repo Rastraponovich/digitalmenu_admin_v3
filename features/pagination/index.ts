@@ -1,11 +1,9 @@
 import { createEvent, createStore, Event, guard, sample, Store } from "effector"
-import { useMemo } from "react"
-import { toggleModal } from "../modal"
 
-interface ICreatePagination {
-    (cb?: Event<any>): CreatePagination
+interface ICreatePaginationFactory {
+    (cb?: Event<any>): CreatePaginationReturn
 }
-type CreatePagination = {
+type CreatePaginationReturn = {
     setPages: Event<number>
     $pages: Store<number>
     $currentPage: Store<number>
@@ -14,7 +12,7 @@ type CreatePagination = {
     setPage: Event<number>
 }
 
-const createPagination: ICreatePagination = (event) => {
+const createPaginationFactory: ICreatePaginationFactory = (event) => {
     const setPages = createEvent<number>()
 
     const $pages = createStore<number>(10).on(setPages, (state, value) => value)
@@ -56,4 +54,4 @@ const createPagination: ICreatePagination = (event) => {
     return { setPages, $pages, $currentPage, prevPage, nextPage, setPage }
 }
 
-export { createPagination }
+export { createPaginationFactory }

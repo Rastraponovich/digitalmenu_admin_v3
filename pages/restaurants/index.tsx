@@ -1,10 +1,14 @@
 import CreateDishCard from "@/Components/DishCard/CreateDishCard"
 import DishCard from "@/Components/DishCard/DishCard"
 import DishForm from "@/Components/Forms/DishForm"
+import RestaurantForm from "@/Components/Forms/RestaurantForm"
 import Layout from "@/Components/Layout/Layout"
 import Modal from "@/Components/Modal/Modal"
 import PageActionPanel from "@/Components/PageActionPanel/PageActionPanel"
 import Pagination from "@/Components/Pagination/Pagination"
+import RestaurantCard from "@/Components/Restaurants/RestaurantCard"
+import RestaurantList from "@/Components/Restaurants/RestaurantList"
+import RestaurantModal from "@/Components/Restaurants/RestaurantModal"
 import { getAllDirectories } from "@/features/directories"
 import {
     $dishes,
@@ -18,6 +22,19 @@ import { $sortType, changeSortType } from "@/features/items"
 import { $isOpenModal, toggleModal } from "@/features/modal"
 import { usePagination } from "@/features/pagination/usePagination"
 import { $isEnableProgressBar, changeProgressBarStatus } from "@/features/progressBar"
+import {
+    $checkedRestaurants,
+    $isOpenRestaurantForm,
+    $pending,
+    $restaurants,
+    checkAllRestaurants,
+    closeRestaurantForm,
+    createRestaurant,
+    getAllRestaurants,
+    saveRestaurant,
+    uncheckAllRestaurants,
+    updateRestaurant,
+} from "@/features/restaurants"
 import { toggleDrawer } from "@/features/sidebar"
 import { getAllUsers } from "@/features/users"
 import { SortTypes } from "@/types/ui.types"
@@ -26,7 +43,7 @@ import { allSettled, Event, fork, serialize, Store } from "effector"
 import { useEvent, useList, useStore } from "effector-react/scope"
 import type { GetServerSideProps, NextPage } from "next"
 
-import { FC } from "react"
+import { FC, memo } from "react"
 
 interface FieldProps {
     status: Store<string>
@@ -39,22 +56,17 @@ const Field: FC<FieldProps> = ({ status, change }) => {
     return <input value={value} onChange={(e) => onChange(e.target.value)} className="text-black" />
 }
 
-const Dishes: NextPage = () => {
+const RestaurantsPage: NextPage = () => {
     const handleToggleDrawer = useEvent(toggleDrawer)
-    const isOpenModal = useStore($isOpenModal)
     const handleOpenModal = useEvent(toggleModal)
-
-    const handleChangeProgressBarStatus = useEvent(changeProgressBarStatus)
-
-    const isEnablePB = useStore($isEnableProgressBar)
 
     const { setPages, prevPage, nextPage, $pages, $currentPage, setPage } = usePagination(toggleDrawer)
 
-    const sortType = useStore($sortType)
+    console.log("render page")
 
     return (
-        <Layout>
-            <main className="p-8">
+        <Layout title="Список рестаранов">
+            <main className="p-8 space-y-4">
                 <div className="btn-group mb-4 self-center">
                     <button className="btn btn-primary " onClick={handleToggleDrawer}>
                         daisyUI Button
@@ -64,20 +76,16 @@ const Dishes: NextPage = () => {
                         open modal
                     </button>
                 </div>
-                <PageActionPanel sort={changeSortType} sortType={$sortType} refresh={getAllDishes} />
-                <button onClick={handleChangeProgressBarStatus}>{JSON.stringify(isEnablePB)}</button>
-
-                <Modal show={$isOpenModal} onClose={toggleModal} onConfirm={toggleModal}>
-                    showModal
-                </Modal>
-                <div className={clsx("grid grid-cols-5 gap-4", SortTypes[sortType])}>
-                    <CreateDishCard />
-                    {useList($dishes, { fn: (dish) => <DishCard isLoading={isOpenModal} /> })}
-                </div>
-                <div className="grow"></div>
-                <Modal onClose={closeDishForm} show={$isOpenCurrentDish} onConfirm={saveDishTobase}>
-                    <DishForm />
-                </Modal>
+                <PageActionPanel
+                    sort={changeSortType}
+                    sortType={$sortType}
+                    refresh={getAllRestaurants}
+                    checkAll={checkAllRestaurants}
+                    uncheckAll={uncheckAllRestaurants}
+                    create={createRestaurant}
+                />
+                <RestaurantList />
+                <RestaurantModal />
                 <Pagination
                     currentPage={$currentPage}
                     pages={$pages}
@@ -90,14 +98,12 @@ const Dishes: NextPage = () => {
     )
 }
 
-export default Dishes
+export default memo(RestaurantsPage)
 
 export const getServerSideProps: GetServerSideProps = async () => {
     const scope = fork()
 
-    await allSettled(getAllDishes, { scope })
-    await allSettled(getAllDirectories, { scope })
-    await allSettled(getAllUsers, { scope })
+    await allSettled(getAllRestaurants, { scope })
     const serialized = serialize(scope)
 
     return {

@@ -1,7 +1,20 @@
-import ProgressBar from "@/Components/ProgressBar/ProgressBar"
 import { externalAPI } from "@/lib/api"
 import { AxiosResponse } from "axios"
-import { attach, createEffect, createEvent, createStore, Event, forward, sample, Store } from "effector"
+
+import { createUIEventsFactory } from "./uiEventsFactory"
+import {
+    attach,
+    createApi,
+    createEffect,
+    createEvent,
+    createStore,
+    Event,
+    forward,
+    guard,
+    sample,
+    Store,
+} from "effector"
+import { ChangeEvent } from "react"
 
 type FactoryProps = {
     endpoint: string
@@ -15,6 +28,9 @@ type FactoryReturn<T extends { id: number }> = {
     update: Event<void>
     deleteItem: Event<void>
     $pending: Store<boolean>
+    add: Event<void>
+    onChange: Event<ChangeEvent<HTMLInputElement>>
+    onChangeCheckBox: Event<ChangeEvent<HTMLInputElement>>
 }
 
 interface IFactory {
@@ -23,13 +39,17 @@ interface IFactory {
 
 const createFactory: IFactory = <T extends { id: number }>(props: FactoryProps) => {
     const getAllAPI = async (params?: any) => await externalAPI.get(props.endpoint, { params: { params } })
-    const getOneAPI = async (id: T["id"]) => await externalAPI.get(props.endpoint, { params: { id } })
-    const updateAPI = async (item: T) => await externalAPI.patch(props.endpoint, item, { params: { id: item.id } })
-    const deleteAPI = async (id: T["id"]) => await externalAPI.delete(props.endpoint, { params: { id } })
+    const getOneAPI = async (id: T["id"]) => await externalAPI.get(`${props.endpoint}/${id}`)
+    const updateAPI = async (item: T) =>
+        await externalAPI.patch<any, AxiosResponse<T[]>, T>(`${props.endpoint}/${item.id}`, item)
+    const deleteAPI = async (id: T["id"]) => await externalAPI.delete(`${props.endpoint}/${id}`)
+    const deleteAllAPI = async (id: T["id"][]) => await externalAPI.delete(`${props.endpoint}/all`)
 
-    const $store = createStore<T[]>([])
-    const getAll = createEvent()
+    const postAPI = async (item: T) => await externalAPI.post(props.endpoint, item)
+
     const getAllFx = createEffect<any, AxiosResponse<T[]>, Error>(getAllAPI)
+    const $store = createStore<T[]>([]).reset(getAllFx.pending)
+    const getAll = createEvent<void>()
 
     forward({
         from: getAll,
@@ -48,6 +68,14 @@ const createFactory: IFactory = <T extends { id: number }>(props: FactoryProps) 
 
     const $selected = createStore<T>({} as T)
 
+    const { onChange, onChangeCheckBox } = createApi($selected, {
+        onChange: (state, e: ChangeEvent<HTMLInputElement>) => ({ ...state, [e.target.name]: e.target.value }),
+        onChangeCheckBox: (state, e: ChangeEvent<HTMLInputElement>) => ({
+            ...state,
+            [e.target.name]: e.target.checked,
+        }),
+    })
+
     sample({
         clock: getOneFx.doneData,
         fn: (res) => res.data,
@@ -56,7 +84,7 @@ const createFactory: IFactory = <T extends { id: number }>(props: FactoryProps) 
 
     const update = createEvent()
 
-    const updateFx = createEffect<T, AxiosResponse<T>, Error>(updateAPI)
+    const updateFx = createEffect<T, AxiosResponse<T[]>, Error>(updateAPI)
 
     sample({
         clock: update,
@@ -67,8 +95,14 @@ const createFactory: IFactory = <T extends { id: number }>(props: FactoryProps) 
 
     sample({
         clock: updateFx.doneData,
-        fn: (res) => res.data,
+        fn: (res) => res.data[0],
         target: $selected,
+    })
+
+    sample({
+        clock: updateFx.finally,
+        fn: (res) => null,
+        target: getAll,
     })
 
     const deleteItem = createEvent()
@@ -91,7 +125,38 @@ const createFactory: IFactory = <T extends { id: number }>(props: FactoryProps) 
         (state, _) => !state
     )
 
-    return { $store, getAll, getOne, $selected, update, deleteItem, $pending }
+    const addFx = createEffect<T, AxiosResponse<T>, Error>(postAPI)
+    const add = createEvent()
+
+    sample({
+        clock: add,
+        source: $selected,
+        target: addFx,
+    })
+
+    const deleteAll = createEvent()
+
+    const deleteAllFx = createEffect<number[], AxiosResponse<number>, Error>(deleteAllAPI)
+
+    sample({
+        clock: deleteAll,
+        source: $store,
+        fn: (store, _) => store.map((item) => item.id),
+        target: deleteAllFx,
+    })
+
+    return {
+        $store,
+        getAll,
+        getOne,
+        $selected,
+        update,
+        deleteItem,
+        $pending,
+        add,
+        onChange,
+        onChangeCheckBox,
+    }
 }
 
-export { createFactory }
+export { createFactory, createUIEventsFactory }

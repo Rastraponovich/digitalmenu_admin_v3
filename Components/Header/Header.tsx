@@ -2,9 +2,11 @@ import { toggleDrawer } from "@/features/sidebar"
 import { useEvent } from "effector-react/scope"
 import React, { memo, FC } from "react"
 
-interface HeaderProps {}
+interface HeaderProps {
+    title?: string
+}
 
-const Header: FC<HeaderProps> = () => {
+const Header: FC<HeaderProps> = ({ title }) => {
     const handleToggleSidebar = useEvent(toggleDrawer)
     return (
         <header className="navbar  shadow-lg bg-neutral text-neutral-content">
@@ -26,7 +28,7 @@ const Header: FC<HeaderProps> = () => {
                 </button>
             </div>
             <div className="flex-1 hidden px-2 mx-2 lg:flex">
-                <span className="text-lg font-bold">daisyUI</span>
+                <span className="text-lg font-bold">{title || "daisyUI"}</span>
             </div>
             <div className="flex-1 lg:flex-none">
                 <div className="form-control">
