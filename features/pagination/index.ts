@@ -1,21 +1,37 @@
+import { QueryParams } from "@/types/dictonary.types"
 import { createEvent, createStore, Event, guard, sample, Store } from "effector"
 
-interface ICreatePaginationFactory {
-    (cb?: Event<any>): CreatePaginationReturn
+type PaginationProps = {
+    cb: Event<QueryParams | void>
+    totalItems: Store<number>
 }
-type CreatePaginationReturn = {
+
+interface ICreatePaginationFactory {
+    (props: PaginationProps): CreatePaginationReturn
+}
+export type CreatePaginationReturn = {
     setPages: Event<number>
     $pages: Store<number>
     $currentPage: Store<number>
     prevPage: Event<void>
     nextPage: Event<void>
     setPage: Event<number>
+    $itemsPerPage: Store<number>
 }
 
-const createPaginationFactory: ICreatePaginationFactory = (event) => {
+const createPaginationFactory: ICreatePaginationFactory = ({ cb, totalItems }) => {
+    const $itemsPerPage = createStore<number>(2)
+
     const setPages = createEvent<number>()
 
-    const $pages = createStore<number>(10).on(setPages, (state, value) => value)
+    const $pages = createStore<number>(0).on(setPages, (state, value) => value)
+
+    sample({
+        clock: totalItems,
+        source: $itemsPerPage,
+        fn: (itemsPerPage, items) => Math.ceil(items / itemsPerPage),
+        target: $pages,
+    })
 
     const $currentPage = createStore<number>(1).reset($pages)
 
@@ -46,12 +62,13 @@ const createPaginationFactory: ICreatePaginationFactory = (event) => {
     })
 
     sample({
-        clock: event,
-
-        target: nextPage,
+        clock: setPage,
+        source: $itemsPerPage,
+        fn: (limit, page) => ({ paranoid: true, offset: (page - 1) * limit, limit }),
+        target: cb,
     })
 
-    return { setPages, $pages, $currentPage, prevPage, nextPage, setPage }
+    return { setPages, $pages, $currentPage, prevPage, nextPage, setPage, $itemsPerPage }
 }
 
 export { createPaginationFactory }

@@ -1,72 +1,76 @@
-import { externalAPI } from "@/lib/api"
-import { AxiosResponse } from "axios"
-
-import { createUIEventsFactory } from "./uiEventsFactory"
-import {
-    attach,
-    createApi,
-    createEffect,
-    createEvent,
-    createStore,
-    Event,
-    forward,
-    guard,
-    sample,
-    Store,
-} from "effector"
 import { ChangeEvent } from "react"
+import { AxiosResponse } from "axios"
+import { attach, createApi, createEffect, createEvent, createStore, guard, sample } from "effector"
 
-type FactoryProps = {
-    endpoint: string
+import { externalAPI } from "@/lib/api"
+import { createActionPanelFactory } from "./actionPanelFactory"
+
+import { DictonaryFactory, DictonaryFactoryProps, QueryParams } from "@/types/dictonary.types"
+
+const createAPI = <T extends { id: number }>(props: DictonaryFactoryProps) => {
+    const getAll = async (params?: QueryParams) => await externalAPI.get(props.endpoint, { params })
+    const getOne = async (id: T["id"]) =>
+        await externalAPI.get(`${props.endpoint}/${id}`, {
+            params: { paranoid: true },
+        })
+    const update = async (item: T) =>
+        await externalAPI.patch(`${props.endpoint}/${item.id}`, item, { params: { paranoid: true } })
+    const remove = async (id: T["id"]) => await externalAPI.delete(`${props.endpoint}/${id}`)
+    const restore = async (id: T["id"]) => await externalAPI.patch(`${props.endpoint}/restore/${id}`)
+    const deleteAll = async () => await externalAPI.delete(`${props.endpoint}/all`)
+    const post = async ({ id, ...item }: T) => await externalAPI.post(props.endpoint, item)
+
+    const API = {
+        getAll,
+        getOne,
+        update,
+        remove,
+        restore,
+        deleteAll,
+        post,
+    }
+
+    return API
 }
 
-type FactoryReturn<T extends { id: number }> = {
-    $store: Store<T[]>
-    getAll: Event<void>
-    getOne: Event<T["id"]>
-    $selected: Store<T>
-    update: Event<void>
-    deleteItem: Event<void>
-    $pending: Store<boolean>
-    add: Event<void>
-    onChange: Event<ChangeEvent<HTMLInputElement>>
-    onChangeCheckBox: Event<ChangeEvent<HTMLInputElement>>
-}
+const createFactory: DictonaryFactory = <T extends { id: number }>(props: DictonaryFactoryProps) => {
+    const API = createAPI<T>(props)
 
-interface IFactory {
-    <T extends { id: number }>(props: FactoryProps): FactoryReturn<T>
-}
+    const APIFx = createEffect()
 
-const createFactory: IFactory = <T extends { id: number }>(props: FactoryProps) => {
-    const getAllAPI = async (params?: any) => await externalAPI.get(props.endpoint, { params: { params } })
-    const getOneAPI = async (id: T["id"]) => await externalAPI.get(`${props.endpoint}/${id}`)
-    const updateAPI = async (item: T) =>
-        await externalAPI.patch<any, AxiosResponse<T[]>, T>(`${props.endpoint}/${item.id}`, item)
-    const deleteAPI = async (id: T["id"]) => await externalAPI.delete(`${props.endpoint}/${id}`)
-    const deleteAllAPI = async (id: T["id"][]) => await externalAPI.delete(`${props.endpoint}/all`)
+    const addFx = createEffect<T, AxiosResponse<T>, Error>(API.post)
+    const restoreItemFx = createEffect<T["id"], any, Error>(API.restore)
+    const updateFx = createEffect<T, AxiosResponse<T[]>, Error>(API.update)
+    const getOneFx = createEffect<T["id"], AxiosResponse<T>, Error>(API.getOne)
+    const deleteItemFx = createEffect<number, AxiosResponse<number>, Error>(API.remove)
+    const deleteAllFx = createEffect<number[], AxiosResponse<number>, Error>(API.deleteAll)
+    const getAllFx = createEffect<QueryParams | any, AxiosResponse<{ rows: T[]; count: number }>, Error>(API.getAll)
 
-    const postAPI = async (item: T) => await externalAPI.post(props.endpoint, item)
+    const $pending = createStore<boolean>(false).on(
+        [updateFx.pending, getAllFx.pending, getOneFx.pending, deleteItemFx.pending],
+        (state, _) => !state
+    )
 
-    const getAllFx = createEffect<any, AxiosResponse<T[]>, Error>(getAllAPI)
-    const $store = createStore<T[]>([]).reset(getAllFx.pending)
-    const getAll = createEvent<void>()
+    const $store = createStore<T[]>([]).on(getAllFx.doneData, (state, payload) => payload.data.rows)
 
-    forward({
-        from: getAll,
-        to: getAllFx,
+    const getAll = createEvent<QueryParams | void>()
+
+    const $lengthItems = createStore<number>(0).on(getAllFx.doneData, (state, payload) => payload.data.count)
+    sample({
+        clock: getAll,
+        fn: (params) => params,
+        target: getAllFx,
     })
-
-    sample({ clock: getAllFx.doneData, fn: (res) => res.data, target: $store })
 
     const getOne = createEvent<T["id"]>()
-    const getOneFx = createEffect<T["id"], AxiosResponse<T>, Error>(getOneAPI)
 
-    forward({
-        from: getOne,
-        to: getOneFx,
+    sample({
+        clock: getOne,
+        fn: (query) => query,
+        target: getOneFx,
     })
 
-    const $selected = createStore<T>({} as T)
+    const $selected = createStore<T>({} as T).on(getOneFx.doneData, (_, payload) => payload.data)
 
     const { onChange, onChangeCheckBox } = createApi($selected, {
         onChange: (state, e: ChangeEvent<HTMLInputElement>) => ({ ...state, [e.target.name]: e.target.value }),
@@ -75,19 +79,20 @@ const createFactory: IFactory = <T extends { id: number }>(props: FactoryProps) 
             [e.target.name]: e.target.checked,
         }),
     })
-
-    sample({
-        clock: getOneFx.doneData,
-        fn: (res) => res.data,
-        target: $selected,
-    })
+    const $isChangedItem = createStore<boolean>(false)
+        .reset(getAllFx.doneData)
+        .on([onChange, onChangeCheckBox], () => true)
 
     const update = createEvent()
 
-    const updateFx = createEffect<T, AxiosResponse<T[]>, Error>(updateAPI)
+    const isAllowUpdate = guard({
+        clock: update,
+        source: $isChangedItem,
+        filter: (allow) => allow,
+    })
 
     sample({
-        clock: update,
+        clock: isAllowUpdate,
         source: $selected,
         fn: (selected, _) => selected,
         target: updateFx,
@@ -101,48 +106,58 @@ const createFactory: IFactory = <T extends { id: number }>(props: FactoryProps) 
 
     sample({
         clock: updateFx.finally,
-        fn: (res) => null,
+        fn: (res) => {
+            console.log(res)
+            return { paranoid: true, offset: 0, limit: 2 }
+        },
         target: getAll,
     })
 
     const deleteItem = createEvent()
 
-    const deleteItemFx = createEffect<T["id"], AxiosResponse<number>, Error>(deleteAPI)
-
-    const attachDeleteItemFx = attach({
+    sample({
+        clock: deleteItem,
         source: $selected,
-        effect: deleteItemFx,
-        mapParams: (_, item) => item.id,
+        fn: (item, _) => item.id,
+        target: deleteItemFx,
     })
 
-    forward({
-        from: deleteItem,
-        to: attachDeleteItemFx,
-    })
-
-    const $pending = createStore<boolean>(false).on(
-        [updateFx.pending, getAllFx.pending, getOneFx.pending, deleteItemFx.pending],
-        (state, _) => !state
-    )
-
-    const addFx = createEffect<T, AxiosResponse<T>, Error>(postAPI)
     const add = createEvent()
 
-    sample({
+    const isAllowAdd = guard({
         clock: add,
+        source: $isChangedItem,
+        filter: (allow) => allow,
+    })
+
+    sample({
+        clock: isAllowAdd,
         source: $selected,
+        fn: (selected, _) => selected,
         target: addFx,
     })
 
-    const deleteAll = createEvent()
+    sample({
+        clock: addFx.finally,
+        fn: (res) => null,
+        target: getAll,
+    })
 
-    const deleteAllFx = createEffect<number[], AxiosResponse<number>, Error>(deleteAllAPI)
+    const deleteAll = createEvent()
 
     sample({
         clock: deleteAll,
         source: $store,
         fn: (store, _) => store.map((item) => item.id),
         target: deleteAllFx,
+    })
+
+    const restoreItem = createEvent<T["id"]>()
+
+    sample({
+        clock: restoreItem,
+        fn: (id) => id,
+        target: restoreItemFx,
     })
 
     return {
@@ -156,7 +171,10 @@ const createFactory: IFactory = <T extends { id: number }>(props: FactoryProps) 
         add,
         onChange,
         onChangeCheckBox,
+        $isChangedItem,
+        $lengthItems,
+        restoreItem,
     }
 }
 
-export { createFactory, createUIEventsFactory }
+export { createFactory, createActionPanelFactory }

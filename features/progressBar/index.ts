@@ -1,11 +1,15 @@
 import { createEffect, createEvent, createStore, forward, guard, sample, scopeBind } from "effector"
 
 const changeProgressBarStatus = createEvent()
+const setProgressBarStatus = createEvent<boolean>()
+
 const startPB = createEvent()
 const stopPB = createEvent()
 const resetPB = createEvent()
 
-const $isEnableProgressBar = createStore<boolean>(false).on(changeProgressBarStatus, (state, _) => !state)
+const $isEnableProgressBar = createStore<boolean>(false)
+    .on(changeProgressBarStatus, (state, _) => !state)
+    .on(setProgressBarStatus, (state, payload) => payload)
 
 const $progressValue = createStore<number>(0).reset([changeProgressBarStatus, stopPB, resetPB])
 const changeProgressBarValue = createEvent<number>()
@@ -71,4 +75,4 @@ guard({
     target: resetPB,
 })
 
-export { $isEnableProgressBar, $progressValue, startPB, stopPB, resetPB, changeProgressBarStatus }
+export { $isEnableProgressBar, $progressValue, startPB, stopPB, resetPB, changeProgressBarStatus, setProgressBarStatus }

@@ -1,4 +1,5 @@
 import { changeProgressBarStatus } from "@/features/progressBar"
+import { QueryParams } from "@/types/dictonary.types"
 import { TSortType } from "@/types/ui.types"
 import clsx from "clsx"
 import { Event, Store } from "effector"

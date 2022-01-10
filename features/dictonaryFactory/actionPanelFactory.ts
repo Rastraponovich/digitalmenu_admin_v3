@@ -1,8 +1,9 @@
+import { QueryParams } from "@/types/dictonary.types"
 import { createEvent, createStore, Event, guard, sample, Store } from "effector"
 
-type UIEventsFactoryReturn<T extends { id: number }> = {
+type ActionPanelFactoryReturn<T extends { id: number }> = {
     createNewItem: Event<void>
-    editItem: Event<T["id"]>
+    editItem: Event<T["id"] & QueryParams>
     saveItem: Event<void>
     openItemForm: Event<void>
     closeItemForm: Event<void>
@@ -12,12 +13,14 @@ type UIEventsFactoryReturn<T extends { id: number }> = {
     checkOneItem: Event<T>
     $checkedItems: Store<T[]>
     checkAllItems: Event<void>
+    refreshItems: Event<void>
+    deleteItem: Event<void>
 }
 
-interface IUIEventFactory {
-    <T extends { id: number }>(): UIEventsFactoryReturn<T>
+interface ActionPanelFactory {
+    <T extends { id: number }>(): ActionPanelFactoryReturn<T>
 }
-export const createUIEventsFactory: IUIEventFactory = <T extends { id: number }>() => {
+export const createActionPanelFactory: ActionPanelFactory = <T extends { id: number }>() => {
     const createNewItem = createEvent()
     /**
      * вынес в модель, подумать о необходимости
@@ -26,7 +29,7 @@ export const createUIEventsFactory: IUIEventFactory = <T extends { id: number }>
         target: getOne)}
     
      */
-    const editItem = createEvent<T["id"]>()
+    const editItem = createEvent<T["id"] & QueryParams>()
 
     const saveItem = createEvent()
     const openItemForm = createEvent()
@@ -62,7 +65,7 @@ export const createUIEventsFactory: IUIEventFactory = <T extends { id: number }>
          * target: $checkedItems
      })
      */
-    const checkAllItems = createEvent()
+    const checkAllItems = createEvent<void>()
 
     const checkOneItem = createEvent<T>()
 
@@ -96,10 +99,15 @@ export const createUIEventsFactory: IUIEventFactory = <T extends { id: number }>
     //     target: update,
     // })
 
+    const refreshItems = createEvent()
+
+    const deleteItem = createEvent<void>()
+
     return {
         createNewItem,
         editItem,
         saveItem,
+        deleteItem,
         openItemForm,
         closeItemForm,
         $isNewItem,
@@ -108,5 +116,6 @@ export const createUIEventsFactory: IUIEventFactory = <T extends { id: number }>
         checkOneItem,
         $checkedItems,
         checkAllItems,
+        refreshItems,
     }
 }
