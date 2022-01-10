@@ -8,17 +8,25 @@ interface CheckboxProps {
     name: string
     disabled?: boolean
     rootClassName?: string
-    titleClassName?: string
+    labelClassName?: string
     title: string
     inputClassName?: string
 }
 
-const Checkbox: FC<CheckboxProps> = ({ name, title, onChange, value }) => {
+const Checkbox: FC<CheckboxProps> = ({
+    name,
+    title,
+    onChange,
+    value,
+    inputClassName,
+    labelClassName,
+    rootClassName,
+}) => {
     const handleChange = useEvent(onChange)
     return (
-        <label className="flex flex-col">
-            <span>{title}</span>
-            <input checked={value} name={name} onChange={handleChange} className="text-black" type="checkbox" />
+        <label className={rootClassName}>
+            <span className={labelClassName}>{title}</span>
+            <input checked={value} name={name} onChange={handleChange} className={inputClassName} type="checkbox" />
         </label>
     )
 }

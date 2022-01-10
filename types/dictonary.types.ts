@@ -7,6 +7,11 @@ export type QueryParams = {
     offset?: number
     limit?: number
 }
+
+export type CreateAPIProps = {
+    endpoint: string
+}
+
 export type DictonaryFactoryProps = {
     endpoint: string
 }
@@ -28,4 +33,6 @@ export type DictonaryFactoryReturn<T extends { id: number }> = {
     $isChangedItem: Store<boolean>
     $lengthItems: Store<number>
     restoreItem: Event<T["id"]>
+    setParanoid: Event<void>
+    $paranoid: Store<boolean>
 }

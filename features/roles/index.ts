@@ -44,7 +44,7 @@ const rolesPagination = createPaginationFactory({ cb: rolesFactory.getAll, total
 
 const prependQueryForGetAll = sample({
     source: [rolesPagination.$itemsPerPage, rolesPagination.$currentPage],
-    fn: ([limit, page]) => ({ paranoid: true, offset: (page - 1) * limit, limit }),
+    fn: ([limit, page]) => ({ offset: (page - 1) * limit, limit }),
 })
 
 sample({

@@ -5,9 +5,9 @@ import { attach, createApi, createEffect, createEvent, createStore, guard, sampl
 import { externalAPI } from "@/lib/api"
 import { createActionPanelFactory } from "./actionPanelFactory"
 
-import { DictonaryFactory, DictonaryFactoryProps, QueryParams } from "@/types/dictonary.types"
+import { CreateAPIProps, DictonaryFactory, DictonaryFactoryProps, QueryParams } from "@/types/dictonary.types"
 
-const createAPI = <T extends { id: number }>(props: DictonaryFactoryProps) => {
+const createAPI = <T extends { id: number }>(props: CreateAPIProps) => {
     const getAll = async (params?: QueryParams) => await externalAPI.get(props.endpoint, { params })
     const getOne = async (id: T["id"]) =>
         await externalAPI.get(`${props.endpoint}/${id}`, {
@@ -46,9 +46,12 @@ const createFactory: DictonaryFactory = <T extends { id: number }>(props: Dicton
     const deleteAllFx = createEffect<number[], AxiosResponse<number>, Error>(API.deleteAll)
     const getAllFx = createEffect<QueryParams | any, AxiosResponse<{ rows: T[]; count: number }>, Error>(API.getAll)
 
+    const setParanoid = createEvent()
+    const $paranoid = createStore<boolean>(true).on(setParanoid, (state, _) => !state)
+
     const $pending = createStore<boolean>(false).on(
         [updateFx.pending, getAllFx.pending, getOneFx.pending, deleteItemFx.pending],
-        (state, _) => !state
+        (_, payload) => payload
     )
 
     const $store = createStore<T[]>([]).on(getAllFx.doneData, (state, payload) => payload.data.rows)
@@ -58,7 +61,8 @@ const createFactory: DictonaryFactory = <T extends { id: number }>(props: Dicton
     const $lengthItems = createStore<number>(0).on(getAllFx.doneData, (state, payload) => payload.data.count)
     sample({
         clock: getAll,
-        fn: (params) => params,
+        source: [$paranoid],
+        fn: ([paranoid], params) => ({ ...params, paranoid }),
         target: getAllFx,
     })
 
@@ -66,7 +70,8 @@ const createFactory: DictonaryFactory = <T extends { id: number }>(props: Dicton
 
     sample({
         clock: getOne,
-        fn: (query) => query,
+        source: [$paranoid],
+        fn: ([paranoid], query) => query,
         target: getOneFx,
     })
 
@@ -174,6 +179,8 @@ const createFactory: DictonaryFactory = <T extends { id: number }>(props: Dicton
         $isChangedItem,
         $lengthItems,
         restoreItem,
+        setParanoid,
+        $paranoid,
     }
 }
 

@@ -1,17 +1,16 @@
-import { $currentRestaurant, onChangeCurrentRestaurant } from "@/features/restaurants"
-import { $currentRole, rolesFactory } from "@/features/roles"
+import { usersFactory } from "@/features/users"
 import clsx from "clsx"
 import { useEvent, useStore } from "effector-react"
 import React, { memo, FC } from "react"
 import Checkbox from "../InputFiled/Checkbox"
 import InputField from "../InputFiled/InputField"
 
-interface RolesFormProps {}
+interface UsersFormProps {}
 
-const RolesForm: FC<RolesFormProps> = () => {
-    const { name, altName, image, users, active, deletedAt, id } = useStore($currentRole)
+const UsersForm: FC<UsersFormProps> = () => {
+    const { email, firstName, lastName, image, active, deletedAt, id } = useStore(usersFactory.$selected)
 
-    const handleRestore = useEvent(rolesFactory.restoreItem)
+    const handleRestore = useEvent(usersFactory.restoreItem)
 
     return (
         <form onSubmit={(e) => e.preventDefault()}>
@@ -21,37 +20,37 @@ const RolesForm: FC<RolesFormProps> = () => {
             </div>
 
             <InputField
-                value={name}
-                onChange={rolesFactory.onChange}
-                name="name"
-                title={"Название"}
+                value={firstName}
+                onChange={usersFactory.onChange}
+                name="firstName"
+                title={"firstName"}
                 rootClassName="form-control"
                 titleClassName="label-text label"
                 inputClassName="input input-accent input-bordered"
             />
             <InputField
-                value={altName}
-                onChange={rolesFactory.onChange}
-                name="altName"
-                title={"altName"}
+                value={lastName}
+                onChange={usersFactory.onChange}
+                name="lastName"
+                title={"lastName"}
                 type="text"
                 rootClassName="form-control"
                 titleClassName="label-text label"
                 inputClassName="input input-accent input-bordered"
             />
             <InputField
-                value={image}
-                onChange={rolesFactory.onChange}
+                value={email}
+                onChange={usersFactory.onChange}
                 type="text"
-                name="image"
-                title={"image"}
+                name="email"
+                title={"email"}
                 rootClassName="form-control"
                 titleClassName="label-text label"
                 inputClassName="input input-accent input-bordered"
             />
             <Checkbox
                 value={active}
-                onChange={rolesFactory.onChangeCheckBox}
+                onChange={usersFactory.onChangeCheckBox}
                 name="active"
                 title={"active"}
                 inputClassName="checkbox checkbox-accent"
@@ -69,4 +68,4 @@ const RolesForm: FC<RolesFormProps> = () => {
     )
 }
 
-export default memo(RolesForm)
+export default memo(UsersForm)

@@ -1,6 +1,7 @@
 import { $sortType } from "@/features/items"
 import { SortTypes, TSortType } from "@/types/ui.types"
 import clsx from "clsx"
+import { Store } from "effector"
 import { useStore } from "effector-react"
 import React, { memo, FC, ReactNode } from "react"
 

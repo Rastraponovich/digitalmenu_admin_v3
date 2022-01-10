@@ -7,6 +7,8 @@ import RolesCard from "@/Components/Roles/RolesCard"
 import RolesList from "@/Components/Roles/RolesList"
 import RolesModal from "@/Components/Roles/RolesModal"
 import List from "@/Components/UI/List/List"
+import UsersCard from "@/Components/Users/UsersCard"
+import UsersModal from "@/Components/Users/UsersModal"
 
 import { $sortType, changeSortType } from "@/features/items"
 import { $isOpenModal, toggleModal } from "@/features/modal"
@@ -14,6 +16,7 @@ import { usePagination } from "@/features/pagination/usePagination"
 import { $pending, $roles, getAllRoles, rolesFactory, rolesPagination, rolesUI } from "@/features/roles"
 
 import { toggleDrawer } from "@/features/sidebar"
+import { userActionPanel, userPagination, usersFactory } from "@/features/users"
 import { SortTypes } from "@/types/ui.types"
 import clsx from "clsx"
 import { allSettled, Event, fork, serialize, Store } from "effector"
@@ -22,40 +25,26 @@ import type { GetServerSideProps, NextPage } from "next"
 
 import { FC, memo } from "react"
 
-const RolesPage: NextPage = () => {
-    const handleToggleDrawer = useEvent(toggleDrawer)
-    const handleOpenModal = useEvent(toggleModal)
-
-    const roles = useStore($roles)
-    const { setPages, prevPage, nextPage, $pages, $currentPage, setPage } = usePagination(rolesPagination)
-
-    console.log("render page")
+const UsersPage: NextPage = () => {
+    const items = useStore(usersFactory.$store)
+    const { setPages, prevPage, nextPage, $pages, $currentPage, setPage } = usePagination(userPagination)
 
     return (
         <Layout title="Список рестаранов">
             <main className="p-8 space-y-4">
-                <div className="btn-group mb-4 self-center">
-                    <button className="btn btn-primary " onClick={handleToggleDrawer}>
-                        daisyUI Button
-                    </button>
-
-                    <button onClick={handleOpenModal} className="btn btn-primary modal-button">
-                        open modal
-                    </button>
-                </div>
                 <PageActionPanel
                     sort={changeSortType}
                     sortType={$sortType}
-                    refresh={rolesUI.refreshItems}
-                    checkAll={rolesUI.checkAllItems}
-                    uncheckAll={rolesUI.unCheckAllItems}
-                    create={rolesUI.createNewItem}
+                    refresh={userActionPanel.refreshItems}
+                    checkAll={userActionPanel.checkAllItems}
+                    uncheckAll={userActionPanel.unCheckAllItems}
+                    create={userActionPanel.createNewItem}
                 />
-                <RolesModal />
+                <UsersModal />
                 <List>
-                    {useList($roles, {
-                        keys: [$pending, roles],
-                        fn: (role) => <RolesCard role={role} edit={rolesUI.editItem} />,
+                    {useList(usersFactory.$store, {
+                        keys: [$pending, items],
+                        fn: (user) => <UsersCard user={user} edit={userActionPanel.editItem} />,
                     })}
                 </List>
                 <Pagination
@@ -70,12 +59,13 @@ const RolesPage: NextPage = () => {
     )
 }
 
-export default memo(RolesPage)
+export default memo(UsersPage)
 
 export const getServerSideProps: GetServerSideProps = async () => {
     const scope = fork()
-
-    await allSettled(getAllRoles, { scope, params: { paranoid: true, limit: 2, offset: 0 } })
+    const paranoid = scope.getState(usersFactory.$paranoid)
+    const limit = scope.getState(userPagination.$itemsPerPage)
+    await allSettled(usersFactory.getAll, { scope, params: { paranoid, limit, offset: 0 } })
     const serialized = serialize(scope)
 
     return {

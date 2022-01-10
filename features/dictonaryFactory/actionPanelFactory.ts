@@ -15,6 +15,8 @@ type ActionPanelFactoryReturn<T extends { id: number }> = {
     checkAllItems: Event<void>
     refreshItems: Event<void>
     deleteItem: Event<void>
+    setShowDeleted: Event<void>
+    $showDeleted: Store<boolean>
 }
 
 interface ActionPanelFactory {
@@ -103,6 +105,9 @@ export const createActionPanelFactory: ActionPanelFactory = <T extends { id: num
 
     const deleteItem = createEvent<void>()
 
+    const setShowDeleted = createEvent()
+    const $showDeleted = createStore<boolean>(true).on(setShowDeleted, (state, _) => !state)
+
     return {
         createNewItem,
         editItem,
@@ -117,5 +122,7 @@ export const createActionPanelFactory: ActionPanelFactory = <T extends { id: num
         $checkedItems,
         checkAllItems,
         refreshItems,
+        setShowDeleted,
+        $showDeleted,
     }
 }
